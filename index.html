@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Regalos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: url('fondo.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:disabled {
+            background: gray;
+            cursor: not-allowed;
+        }
+        .lista-elegidos {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            color: black;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Lista de Regalos</h1>
+        <p>Ingresa tus datos antes de seleccionar un regalo</p>
+        <form id="userForm">
+            <input type="text" id="nombre" placeholder="Tu Nombre" required><br>
+            <input type="tel" id="telefono" placeholder="Número de WhatsApp" required><br>
+            <input type="email" id="correo" placeholder="Tu Correo" required><br>
+            <button type="submit">Guardar Datos</button>
+        </form>
+        <div id="giftList"></div>
+        <div class="lista-elegidos">
+            <h2>Regalos Reservados</h2>
+            <ul id="reservados"></ul>
+        </div>
+    </div>
+    
+    <script>
+        let regalos = [
+            "NEVERA", "TELEVISOR", "LAVADORA", "SOFA", "CAMA", "JUEGO DE VAJILLA", "COCINA", "JUEGO DE OLLA"
+        ];
+        let reservados = JSON.parse(localStorage.getItem("reservados")) || {};
+        let usuario = JSON.parse(localStorage.getItem("usuario")) || {};
+
+        document.getElementById("userForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            usuario = {
+                nombre: document.getElementById("nombre").value,
+                telefono: document.getElementById("telefono").value,
+                correo: document.getElementById("correo").value
+            };
+            localStorage.setItem("usuario", JSON.stringify(usuario));
+            alert("Datos guardados. Ahora puedes seleccionar un regalo.");
+            cargarRegalos();
+        });
+
+        function cargarRegalos() {
+            if (!usuario.nombre) return;
+            let lista = document.getElementById("giftList");
+            lista.innerHTML = "";
+            regalos.forEach((regalo, index) => {
+                let btn = document.createElement("button");
+                btn.innerText = regalo;
+                btn.onclick = function() { seleccionarRegalo(index); };
+                if (reservados[regalo]) {
+                    btn.disabled = true;
+                }
+                lista.appendChild(btn);
+            });
+            actualizarListaReservados();
+        }
+
+        function seleccionarRegalo(index) {
+            if (!usuario.nombre) {
+                alert("Por favor, ingresa tus datos antes de seleccionar un regalo.");
+                return;
+            }
+            let confirmacion = confirm("¿Confirmas que deseas regalar " + regalos[index] + "?");
+            if (confirmacion) {
+                alert("¡Gracias por tu regalo: " + regalos[index] + "!");
+                reservados[regalos[index]] = usuario;
+                localStorage.setItem("reservados", JSON.stringify(reservados));
+                enviarConfirmacion(usuario, regalos[index]);
+                cargarRegalos();
+            }
+        }
+
+        function actualizarListaReservados() {
+            let lista = document.getElementById("reservados");
+            lista.innerHTML = "";
+            for (let regalo in reservados) {
+                let item = document.createElement("li");
+                item.innerText = `${regalo} - Reservado por: ${reservados[regalo].nombre}`;
+                lista.appendChild(item);
+            }
+        }
+
+        function enviarConfirmacion(usuario, regalo) {
+            let mensaje = `Hola ${usuario.nombre},\n\nGracias por reservar el regalo: ${regalo}.\n\nSi deseas transferir dinero, aquí están los datos:\n\nNombre: MARLENY ANGULO GARCES\nRUT: 26827647-5\nBanco: Tenpo\nTipo: Cuenta Vista\nNúmero: 111126827647\nCorreo: yesidangulo8@gmail.com`;
+            
+            let urlWhatsApp = `https://api.whatsapp.com/send?phone=+56${usuario.telefono}&text=${encodeURIComponent(mensaje)}`;
+            window.open(urlWhatsApp, '_blank');
+            alert("Mensaje de confirmación enviado por WhatsApp.");
+        }
+
+        cargarRegalos();
+    </script>
+</body>
+</html>
+

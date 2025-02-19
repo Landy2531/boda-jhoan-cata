@@ -8,24 +8,25 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            background: url('fondo.jpg') no-repeat center center fixed;
-            background-size: cover;
-            color: white;
+            background: linear-gradient(to right, #f8e1e7, #ffffff, #f8e1e7);
+            color: black;
         }
         .container {
             max-width: 600px;
             margin: 50px auto;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(255, 255, 255, 0.9);
             padding: 20px;
             border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
         }
         button {
-            background: #28a745;
+            background: #d291bc;
             color: white;
             padding: 10px 20px;
             border: none;
             cursor: pointer;
             margin: 5px;
+            border-radius: 5px;
         }
         button:disabled {
             background: gray;
@@ -33,12 +34,13 @@
         }
         .lista-elegidos {
             margin-top: 20px;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 182, 193, 0.8);
             color: black;
             padding: 10px;
             border-radius: 5px;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -46,7 +48,7 @@
         <p>Ingresa tus datos antes de seleccionar un regalo</p>
         <form id="userForm">
             <input type="text" id="nombre" placeholder="Tu Nombre" required><br>
-            <input type="tel" id="telefono" placeholder="Número de WhatsApp" required><br>
+            <input type="tel" id="telefono" placeholder="Número de WhatsApp (sin +56)" required pattern="[0-9]{9}"><br>
             <input type="email" id="correo" placeholder="Tu Correo" required><br>
             <button type="submit">Guardar Datos</button>
         </form>
@@ -58,8 +60,10 @@
     </div>
     
     <script>
+        emailjs.init("fkf58nqmlA2Itwzoj");
+        
         let regalos = [
-            "NEVERA", "TELEVISOR", "LAVADORA", "SOFA", "CAMA", "JUEGO DE VAJILLA", "COCINA", "JUEGO DE OLLA"
+            "NEVERA", "TELEVISOR", "LAVADORA", "SOFA", "CAMA", "JUEGO DE VAJILLA", "COCINA", "JUEGO DE OLLA", "CUOTA VOLUNTARIA"
         ];
         let reservados = JSON.parse(localStorage.getItem("reservados")) || {};
         let usuario = JSON.parse(localStorage.getItem("usuario")) || {};
@@ -84,7 +88,7 @@
                 let btn = document.createElement("button");
                 btn.innerText = regalo;
                 btn.onclick = function() { seleccionarRegalo(index); };
-                if (reservados[regalo]) {
+                if (regalo !== "Cuota voluntaria" && reservados[regalo]) {
                     btn.disabled = true;
                 }
                 lista.appendChild(btn);
@@ -97,12 +101,21 @@
                 alert("Por favor, ingresa tus datos antes de seleccionar un regalo.");
                 return;
             }
-            let confirmacion = confirm("¿Confirmas que deseas regalar " + regalos[index] + "?");
+            let regaloSeleccionado = regalos[index];
+            if (regaloSeleccionado === "Cuota voluntaria") {
+                let monto = prompt("Ingresa el monto que deseas transferir:");
+                if (!monto || isNaN(monto)) {
+                    alert("Por favor, ingresa un monto válido.");
+                    return;
+                }
+                regaloSeleccionado += ` - Monto: $${monto}`;
+            }
+            let confirmacion = confirm("¿Confirmas que deseas regalar " + regaloSeleccionado + "?");
             if (confirmacion) {
-                alert("¡Gracias por tu regalo: " + regalos[index] + "!");
+                alert("¡Gracias por tu regalo: " + regaloSeleccionado + "!");
                 reservados[regalos[index]] = usuario;
                 localStorage.setItem("reservados", JSON.stringify(reservados));
-                enviarConfirmacion(usuario, regalos[index]);
+                enviarConfirmacion(usuario, regaloSeleccionado);
                 cargarRegalos();
             }
         }
@@ -118,15 +131,26 @@
         }
 
         function enviarConfirmacion(usuario, regalo) {
-            let mensaje = `Hola ${usuario.nombre},\n\nGracias por reservar el regalo: ${regalo}.\n\nSi deseas transferir dinero, aquí están los datos:\n\nNombre: MARLENY ANGULO GARCES\nRUT: 26827647-5\nBanco: Tenpo\nTipo: Cuenta Vista\nNúmero: 111126827647\nCorreo: yesidangulo8@gmail.com`;
+            let mensaje = `Hola ${usuario.nombre},%0A%0AGracias por reservar el regalo: ${regalo}.%0A%0ASi deseas transferir dinero, aquí están los datos:%0A%0ANombre: MARLENY ANGULO GARCES%0ARUT: 26827647-5%0ABanco: Tenpo%0ATipo: Cuenta Vista%0ANúmero: 111126827647%0ACorreo: yesidangulo8@gmail.com`;
             
-            let urlWhatsApp = `https://api.whatsapp.com/send?phone=+56${usuario.telefono}&text=${encodeURIComponent(mensaje)}`;
-            window.open(urlWhatsApp, '_blank');
-            alert("Mensaje de confirmación enviado por WhatsApp.");
+            let urlWhatsApp = `https://wa.me/56${usuario.telefono}?text=${mensaje}`;
+            window.open(urlWhatsApp, "_blank");
+            
+            emailjs.send("service_b6ajjgn", "template_blkejpq", {
+                to_email: usuario.correo,
+                nombre: usuario.nombre,
+                regalo: regalo
+            }).then(response => {
+                console.log("Correo enviado:", response);
+                alert("Se ha enviado la confirmación por correo y se abrió WhatsApp.");
+            }).catch(error => {
+                console.error("Error enviando correo:", error);
+            });
         }
 
         cargarRegalos();
     </script>
 </body>
 </html>
+
 
